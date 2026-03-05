@@ -111,7 +111,7 @@ M3EDismissibleCardList(
 ### 🎯 Check the [Example](https://github.com/Mudit200408/m3e_dismissible/tree/main/example) App for more details. 
 
 ---
-## � Found a bug? or ✨ You have a Feature Request?
+## 🐞 Found a bug? or ✨ You have a Feature Request?
 
 Feel free to open a [Issue](https://github.com/Mudit200408/m3e_dismissible/issues) or [Contribute](https://github.com/Mudit200408/m3e_dismissible/pulls) to the project.
 

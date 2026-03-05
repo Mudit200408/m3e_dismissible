@@ -1,7 +1,9 @@
 name: m3e_dismissible
 description: "A new Flutter package project."
 version: 0.0.1
-homepage: 
+homepage: https://github.com/Mudit200408/m3e_dismissible
+repository: https://github.com/Mudit200408/m3e_dismissible
+issue_tracker: https://github.com/Mudit200408/m3e_dismissible/issues
 
 topics:
   - ui
