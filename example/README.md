@@ -1,125 +1,159 @@
-# M3E Dismissible
+# M3E Dismissible Example App
 
-![M3E Intro](https://raw.githubusercontent.com/Mudit200408/m3e_card_list/main/doc/intro.png)
+This example app demonstrates the various components and layouts provided by the `m3e_dismissible` package.
 
-A comprehensive Flutter package providing expressive, Material 3 card lists with dynamically rounded corners inside normal `ListView`s and `CustomScrollView`s (via slivers). It offers **interactive dismissible cards** featuring expressive M3 styling and spring physics.
+![M3E Intro](https://raw.githubusercontent.com/Mudit200408/m3e_dismissible/main/doc/intro.png)
 
-It automatically calculates and draws the corners to fit exactly the [Material 3 Expressive](https://m3.material.io/blog/building-with-m3-expressive) spec for adjacent items. It gives extensive customization options including customizable splash ripples, custom border colors, custom elevation and highly tunable haptic feedback along with stiffness and damping for animations.
+## 📌 Overview
 
----
+The example application is designed to showcase the power and flexibility of the **M3E Dismissible** package. It contains three main tabs demonstrating the different layout wrappers available:
 
-## 🚀 Features
-
-- **Dynamic border radius:** The first and last items get a larger outer radius while adjoining cards receive a smaller inner radius seamlessly.
-- **Physics & Animations:** Spring-driven physics for dragging. Neighbour-pull effects on swipe.
-- **Highly Customizable:** Complete control over gaps, radii, colors, haptics, and padding.
-- **Sliver & Column Support:** Provides Slivers and Column wrappers out of the box to beautifully tie into complex layouts.
+1.  **ListView (`M3EDismissibleCardList`)**: The standard scrollable list.
+2.  **Sliver (`SliverM3EDismissibleCardList`)**: For advanced scrolling effects within a `CustomScrollView`.
+3.  **Column (`M3EDismissibleCardColumn`)**: For static, non-scrolling vertical layouts.
 
 ---
 
-## 📦 Installation
+## 🎨 Gmail-Style UI
 
-```yaml
-dependencies:
-  m3e_dismissible: ^0.1.0
-```
+<img src="https://raw.githubusercontent.com/Mudit200408/m3e_dismissible/main/doc/dismissible-gmail.gif"  height="450" alt="Dismissible M3E List"/>
+
+In the example app, the Gmail-style UI (pull-to-load more or showing a loader at the end smoothly) is achieved by:
+
+1. **Lazy Loading Indicator**: Returning a loading tile widget when `index == items.length`.
 
 ```dart
-import 'package:m3e_dismissible/m3e_dismissible.dart';
+class LoadingTile extends StatelessWidget {
+  const LoadingTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Loading more…',
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+2. **Custom Dismiss Style**: Applying an expressive dismiss style with rounded backgrounds.
+
+Here is how you can easily configure the beautiful delete and archive backgrounds with spring haptics:
+
+```dart
+M3EDismissibleCardStyle getDismissStyle() => M3EDismissibleCardStyle(
+  hapticOnTap: 1,
+  hapticOnThreshold: 1,
+  backgroundBorderRadius: 100, // Fully rounded behind the card when swiped
+  secondaryBackgroundBorderRadius: 100,
+  collapseSpeed: 60,
+  dismissHapticStream: true, // Continuous haptics during interaction
+  dismissThreshold: 0.3,
+  background: Container(
+    color: const Color.fromARGB(255, 80, 218, 87),
+    alignment: Alignment.center,
+    child: const Icon(Icons.archive, color: Colors.white, size: 28),
+  ),
+  secondaryBackground: Container(
+    color: Colors.red.shade600,
+    alignment: Alignment.center,
+    child: const Icon(Icons.delete, color: Colors.white, size: 28),
+  ),
+);
 ```
 
 ---
-## 🧩 Components & Usage
 
-## M3E Dismissible Cards
-Swipe-to-dismiss items with a beautiful spring-driven "neighbour pull" effect.
+## 💻 Layout Showcases
 
-### 🔴 Dismissible M3E (Gmail Style)
+### 1. ListView (`M3EDismissibleCardList`)
 
-<img src="https://raw.githubusercontent.com/Mudit200408/m3e_card_list/main/doc/dismissible-gmail.gif"  height="450" alt="Dismissible M3E List"/>
-
-### 🔴 Dismissible M3E (neighbourPull: 50.0, neighbourReach: 3, stiffness: 500, damping: 0.25, dismissThreshold: 0.6)
-
-<img src="https://raw.githubusercontent.com/Mudit200408/m3e_card_list/main/doc/dismissible-highPull.gif"  height="450" alt="Dismissible M3E High Pull"/>
-
-### Usage:
+Perfect for a standalone, scrollable list of dismissible items. The example implements infinite scrolling by detecting the scroll position and simulating a network load.
 
 ```dart
 M3EDismissibleCardList(
   itemCount: items.length,
-  itemBuilder: (ctx, i) => Text(items[i].title),
-  onDismiss: (i, dir) async { 
-    items.removeAt(i); 
+  onDismiss: (index, direction) async {
+    items.removeAt(index);
+    // Return true to successfully dismiss, false to cancel and snap back
     return true; 
   },
-  style: const M3EDismissibleCardStyle(
-    outerRadius: 24,
-    dismissThreshold: 0.3,
-    neighbourPull: 12.0,
-  ),
+  itemBuilder: (context, index) => buildEmailTile(context, items[index]),
 )
 ```
 
-**`M3EDismissibleCardList` Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `itemCount` | `int` | **Required** | Number of data items. |
-| `itemBuilder` | `IndexedWidgetBuilder` | **Required** | Builds content for each item. |
-| `onDismiss` | `Future<bool> Function(int, DismissDirection)?` | `null` | Called when swipe exceeds threshold. Return `true` to dismiss. |
-| `onTap` | `void Function(int)?` | `null` | Called on tap (blocked during drag). |
-| `style` | `M3EDismissibleCardStyle` | `const M3EDismissibleCardStyle()` | Visual and interaction configuration. |
-| `physics` | `ScrollPhysics?` | `null` | Scroll physics override. |
-| `scrollController` | `ScrollController?` | `null` | Scroll controller. |
-| `listPadding` | `EdgeInsetsGeometry?` | `null` | Padding around the entire list. |
-| `shrinkWrap` | `bool` | `false` | Whether the list should shrink-wrap its children. |
-| `clipBehavior` | `Clip` | `Clip.hardEdge` | Clip behavior for the list. |
+### 2. Sliver (`SliverM3EDismissibleCardList`)
 
-**`M3EDismissibleCardStyle` Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `outerRadius` | `double` | `18.0` | Outer corner radius for first/last/single items. |
-| `innerRadius` | `double` | `4.0` | Inner corner radius for middle items. |
-| `selectedBorderRadius` | `double?` | `null` | Radius applied to the dragged card once threshold is crossed. |
-| `backgroundBorderRadius` | `double?` | `100` | Radius applied to the background when swiping start-to-end. |
-| `secondaryBackgroundBorderRadius` | `double?` | `100` | Radius applied to the secondary background when swiping end-to-start. |
-| `collapseSpeed` | `double` | `50` | Speed of collapse animation after the card is dismissed. Higher Number = Faster Collapse, Lower Number = Slower Collapse |
-| `gap` | `double` | `3.0` | Vertical gap between cards. |
-| `color` | `Color?` | `surfaceContainerHighest` | Card background colour. |
-| `padding` | `EdgeInsetsGeometry?` | `null` | Inner padding of each card's content area. |
-| `margin` | `EdgeInsetsGeometry?` | `null` | Outer margin around each card. |
-| `border` | `BorderSide?` | `null` | Optional border drawn on every card. |
-| `elevation` | `double` | `0.0` | Resting elevation. |
-| `background` | `Widget?` | `null` | Revealed background when swiping start-to-end. |
-| `secondaryBackground` | `Widget?` | `null` | Revealed background when swiping end-to-start. |
-| `splashColor` | `Color?` | `null` | Ink splash color. |
-| `highlightColor` | `Color?` | `null` | Ink highlight color. |
-| `splashFactory` | `InteractiveInkFeatureFactory?` | `null` | Splash factory. |
-| `enableFeedback` | `bool` | `true` | Whether gestures provide acoustic/haptic feedback. |
-| `hapticOnTap` | `int` | `0` | Haptic intensity on tap (0=none, 1=light, 2=medium, 3=heavy). |
-| `dismissThreshold` | `double` | `0.2` | Fraction of width before dismiss triggers. |
-| `hapticOnThreshold` | `int` | `1` | Haptic feedback level when crossing dismiss threshold. |
-| `dismissHapticStream` | `bool` | `false` | Fire continuous light haptics during drag. |
-| `neighbourPull` | `double` | `8.0` | Maximum pixel offset applied to neighbouring cards. |
-| `neighbourReach` | `int` | `3` | How many cards above + below the dragged card are affected. |
-| `neighbourStiffness` | `double` | `800` | Spring stiffness for neighbour snapping. |
-| `neighbourDamping` | `double` | `0.7` | Spring damping for neighbour snapping. |
+Ideal when you need dismissible lists to integrate with other scrollable content, like a `SliverAppBar` or various `SliverPadding` sections in a unified `CustomScrollView`.
 
-> *Variants Available:* `SliverM3EDismissibleCardList`, `M3EDismissibleCardColumn`
+```dart
+CustomScrollView(
+  slivers: [
+    const SliverAppBar(
+      title: Text("Sliver Example"),
+      floating: true,
+      snap: true,
+    ),
+    SliverPadding(
+      padding: const EdgeInsets.all(16.0),
+      sliver: SliverM3EDismissibleCardList(
+        itemCount: items.length,
+        onDismiss: (index, direction) async {
+          items.removeAt(index);
+          return true; 
+        },
+        itemBuilder: (context, index) => buildEmailTile(context, items[index]),
+      ),
+    ),
+  ],
+)
+```
+
+### 3. Column (`M3EDismissibleCardColumn`)
+
+When you don't need independent scrolling but still desire the beautiful neighbour-pull effect and dismiss action. This is great for short lists inside an already scrolling parent (like `SingleChildScrollView`).
+
+<img src="https://raw.githubusercontent.com/Mudit200408/m3e_dismissible/main/doc/dismissible-highPull.gif"  height="450" alt="Dismissible M3E High Pull"/>
+
+```dart
+M3EDismissibleCardColumn(
+  itemCount: items.length,
+  onDismiss: (index, direction) async {
+    items.removeAt(index);
+    return true;
+  },
+  style: M3EDismissibleCardStyle(
+    dismissThreshold: 0.6,
+    neighbourPull: 20.0, // High pull effect to displace neighbours!
+    neighbourReach: 3,
+    background: Container(color: Colors.blue),
+  ),
+  itemBuilder: (context, index) => buildEmailTile(context, items[index]),
+)
+```
 
 ---
 
-### 🎯 Check the [Example](https://github.com/Mudit200408/m3e_dismissible/tree/main/example) App for more details. 
+## 🏃 Running the Example
 
----
-## � Found a bug? or ✨ You have a Feature Request?
-
-Feel free to open a [Issue](https://github.com/Mudit200408/m3e_dismissible/issues) or [Contribute](https://github.com/Mudit200408/m3e_dismissible/pulls) to the project.
-
-Hope You Love It!
-
-----
-## Credits
-- [Motor](https://pub.dev/packages/motor) Pub Package for Expressive Animations
-- Claude and Gemini for helping me with the code and documentation.
-
-### Radhe Radhe 🙏
+1. Ensure you have Flutter installed.
+2. Clone the repository.
+3. Open a terminal in the `example` directory.
+4. Run `flutter pub get`.
+5. Run `flutter run`.
