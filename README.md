@@ -95,14 +95,13 @@ M3EDismissibleCardList(
 | `highlightColor` | `Color?` | `null` | Ink highlight color. |
 | `splashFactory` | `InteractiveInkFeatureFactory?` | `null` | Splash factory. |
 | `enableFeedback` | `bool` | `true` | Whether gestures provide acoustic/haptic feedback. |
-| `hapticOnTap` | `int` | `0` | Haptic intensity on tap (0=none, 1=light, 2=medium, 3=heavy). |
+| `hapticOnTap` | `M3EHapticFeedback` | `none` | Haptic feedback intensity on tap. |
 | `dismissThreshold` | `double` | `0.2` | Fraction of width before dismiss triggers. |
-| `hapticOnThreshold` | `int` | `1` | Haptic feedback level when crossing dismiss threshold. |
+| `hapticOnThreshold` | `M3EHapticFeedback` | `light` | Haptic feedback level when crossing dismiss threshold. |
 | `dismissHapticStream` | `bool` | `false` | Fire continuous light haptics during drag. |
 | `neighbourPull` | `double` | `8.0` | Maximum pixel offset applied to neighbouring cards. |
 | `neighbourReach` | `int` | `3` | How many cards above + below the dragged card are affected. |
-| `neighbourStiffness` | `double` | `800` | Spring stiffness for neighbour snapping. |
-| `neighbourDamping` | `double` | `0.7` | Spring damping for neighbour snapping. |
+| `neighbourMotion` | `M3EMotion` | `800/0.7` | Spring motion for neighbour snapping. |
 
 > *Variants Available:* `SliverM3EDismissibleCardList`, `M3EDismissibleCardColumn`
 

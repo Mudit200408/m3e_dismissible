@@ -4,19 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:motor/motor.dart';
 
+import 'm3e_haptics.dart';
 import 'm3e_dismissible_card_style.dart';
+import 'm3e_motion.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spring presets (Material 3 Expressive via motor)
 // ─────────────────────────────────────────────────────────────────────────────
 
-final _kSpatialSpring = MaterialSpringMotion.expressiveSpatialDefault()
-    .copyWith(stiffness: 380, damping: 0.6);
-
 final _kSpatialSpringBack = MaterialSpringMotion.expressiveSpatialDefault()
     .copyWith(stiffness: 200, damping: 0.8);
-
-final _kFlySpring = MaterialSpringMotion.expressiveSpatialSlow();
 
 final _kReEngageSpring = MaterialSpringMotion.standardSpatialFast();
 
@@ -28,15 +25,24 @@ final _kDetachPush = MaterialSpringMotion.expressiveSpatialDefault().copyWith(
 final _kRoundnessSnap = MaterialSpringMotion.expressiveSpatialDefault()
     .copyWith(stiffness: 1000, damping: 0.4);
 
+// Named easing used by _AnimatedCard when no drag is active — a springy
+// overshoot curve that smoothly settles the card's border-radius.
+const _kCardSettleCurve = Cubic(0.34, 1.56, 0.64, 1);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Slot — lightweight per-item bookkeeping
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum _SlotStatus { visible, collapsing }
 
+/// Lightweight bookkeeping for a single card's position and lifecycle in the list.
 class DismissibleSlot {
   _SlotStatus _status;
+
+  /// The measured height of the card before it started collapsing.
   double capturedHeight = 0;
+
+  /// The measured width of the card before it was dismissed.
   double capturedWidth = 0;
 
   /// Direction of the swipe that caused the dismiss — kept so the background
@@ -53,6 +59,7 @@ class DismissibleSlot {
   /// stable even when surrounding slots collapse.
   final Object identity = Object();
 
+  /// Creates a new [DismissibleSlot] in the visible state.
   DismissibleSlot() : _status = _SlotStatus.visible;
 
   bool get isVisible => _status == _SlotStatus.visible;
@@ -119,6 +126,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
   double _roundnessFraction = 0.0;
   double _detachPush = 0.0;
 
+  /// Number of slots currently in the collapsing state.
+  /// Kept in sync at the exact moments slots change state — O(1) alternative
+  /// to scanning [_slots] on every card build.
+  int _collapsingCount = 0;
+
   /// Stopwatch for throttling haptic feedback — cheaper than DateTime.now().
   final Stopwatch _hapticStopwatch = Stopwatch()..start();
 
@@ -145,12 +157,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
   ];
 
   /// All managed slots (visible + collapsing).
-  List<DismissibleSlot> get slots => _slots;
+  List<DismissibleSlot> get slots => List.unmodifiable(_slots);
 
   /// `true` while any drag or collapse animation is running — used to block
   /// tap events and prevent mis-touch.
-  bool get isInteractionLocked =>
-      _dragSlotRef != null || _slots.any((s) => s.isCollapsing);
+  bool get isInteractionLocked => _dragSlotRef != null || _collapsingCount > 0;
 
   // ── Lifecycle ──
 
@@ -169,6 +180,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
       slot.dispose();
       slot.disposeFlyNotifier();
     }
+    _collapsingCount = 0;
   }
 
   /// Keeps [_slots] in sync with [swipeItemCount] without requiring the
@@ -232,24 +244,28 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
 
   // ── Border radius ──
 
-  BorderRadius computeRadius(int slotIndex, List<int> visible) {
+  // [slotPos] and [dragPos] are pre-computed by the caller to avoid redundant
+  // indexOf lookups when this is called once per card per frame.
+  BorderRadius computeRadius(
+    int slotIndex,
+    int slotPos,
+    int dragPos,
+    List<int> visible,
+  ) {
     final s = style;
-    final pos = visible.indexOf(slotIndex);
-    if (pos < 0) return BorderRadius.circular(s.outerRadius);
+    if (slotPos < 0) return BorderRadius.circular(s.outerRadius);
 
     final total = visible.length;
-    final isFirst = pos == 0;
-    final isLast = pos == total - 1;
+    final isFirst = slotPos == 0;
+    final isLast = slotPos == total - 1;
     final or = s.outerRadius;
     final sr = s.selectedBorderRadius ?? or;
     final ir = s.innerRadius;
 
     if (total == 1) return BorderRadius.circular(or);
 
-    final dragPos = _dragSlotIndex >= 0 ? visible.indexOf(_dragSlotIndex) : -1;
-
     // No active drag or far from dragged card — static radius.
-    if (dragPos < 0 || (pos - dragPos).abs() > 1) {
+    if (dragPos < 0 || (slotPos - dragPos).abs() > 1) {
       return BorderRadius.only(
         topLeft: Radius.circular(isFirst ? or : ir),
         topRight: Radius.circular(isFirst ? or : ir),
@@ -265,7 +281,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
         : lerpDouble(ir, or, _roundnessFraction * 0.3)!;
 
     final isDragged = slotIndex == _dragSlotIndex;
-    final isAbove = pos < dragPos;
+    final isAbove = slotPos < dragPos;
 
     if (isDragged) {
       // Once past threshold, snap all corners to selectedBorderRadius.
@@ -298,13 +314,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
 
   // ── Neighbour offset ──
 
-  double computeNeighbourOffset(int slotIndex, List<int> visible) {
-    if (_dragSlotIndex < 0) return 0.0;
-    final dragPos = visible.indexOf(_dragSlotIndex);
-    final pos = visible.indexOf(slotIndex);
-    if (dragPos < 0 || pos < 0) return 0.0;
+  // [slotPos] and [dragPos] are pre-computed by the caller.
+  double computeNeighbourOffset(int slotPos, int dragPos) {
+    if (dragPos < 0 || slotPos < 0) return 0.0;
 
-    final distance = (pos - dragPos).abs();
+    final distance = (slotPos - dragPos).abs();
     if (distance == 0 || distance > style.neighbourReach) return 0.0;
 
     final reach = style.neighbourReach;
@@ -323,6 +337,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     _springCtrl?.stop(canceled: true);
     _nbrCtrl?.stop(canceled: true);
     _pushCtrl?.stop(canceled: true);
+    _roundnessCtrl?.stop(canceled: true);
 
     setState(() {
       _dragSlotRef = slot;
@@ -356,19 +371,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     if (crossedNow && !_pastThreshold) {
       // ── Crossed threshold ──
       _pastThreshold = true;
-      switch (style.hapticOnThreshold) {
-        case 1:
-          HapticFeedback.lightImpact();
-          break;
-        case 2:
-          HapticFeedback.mediumImpact();
-          break;
-        case 3:
-          HapticFeedback.heavyImpact();
-          break;
-        default:
-          break;
-      }
+      applyExpandableHaptic(style.hapticOnThreshold);
 
       final pushDir = newOffset.sign;
 
@@ -392,8 +395,8 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
       _nbrCtrl =
           SingleMotionController(
               motion: MaterialSpringMotion.expressiveSpatialDefault().copyWith(
-                stiffness: style.neighbourStiffness * multiplier,
-                damping: style.neighbourDamping,
+                stiffness: style.neighbourMotion.stiffness * multiplier,
+                damping: style.neighbourMotion.damping,
               ),
               vsync: this,
               initialValue: _neighbourFraction,
@@ -420,19 +423,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
       // ── Re-engaging (back below threshold) ──
       _pastThreshold = false;
       _reEngaging = true;
-      switch (style.hapticOnThreshold) {
-        case 1:
-          HapticFeedback.lightImpact();
-          break;
-        case 2:
-          HapticFeedback.mediumImpact();
-          break;
-        case 3:
-          HapticFeedback.heavyImpact();
-          break;
-        default:
-          break;
-      }
+      applyExpandableHaptic(style.hapticOnThreshold);
 
       _pushCtrl?.dispose();
       _pushCtrl =
@@ -455,8 +446,8 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
       _nbrCtrl =
           SingleMotionController(
               motion: MaterialSpringMotion.expressiveSpatialDefault().copyWith(
-                stiffness: style.neighbourStiffness * multiplier,
-                damping: style.neighbourDamping,
+                stiffness: style.neighbourMotion.stiffness * multiplier,
+                damping: style.neighbourMotion.damping,
               ),
               vsync: this,
               initialValue: _neighbourFraction,
@@ -566,7 +557,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     _springCtrl?.dispose();
     _springCtrl =
         SingleMotionController(
-            motion: _kSpatialSpring.copyWith(stiffness: 380 * speedMul),
+            motion: M3EMotion.custom(
+              stiffness: style.snapBackMotion.stiffness * speedMul,
+              damping: style.snapBackMotion.damping,
+              snapToEnd: style.snapBackMotion.snapToEnd,
+            ).toMotion(),
             vsync: this,
             initialValue: _dragOffset,
           )
@@ -586,7 +581,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     _nbrCtrl?.dispose();
     _nbrCtrl =
         SingleMotionController(
-            motion: _kSpatialSpring.copyWith(stiffness: 380 * speedMul),
+            motion: M3EMotion.custom(
+              stiffness: style.snapBackMotion.stiffness * speedMul,
+              damping: style.snapBackMotion.damping,
+              snapToEnd: style.snapBackMotion.snapToEnd,
+            ).toMotion(),
             vsync: this,
             initialValue: _neighbourFraction,
           )
@@ -623,11 +622,14 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     // Clear drag-phase controllers.
     _pushCtrl?.dispose();
     _pushCtrl = null;
+    _nbrCtrl?.dispose();
+    _nbrCtrl = null;
     _roundnessCtrl?.dispose();
     _roundnessCtrl = null;
 
     setState(() {
       slot._status = _SlotStatus.collapsing;
+      _collapsingCount++;
       _dragSlotRef = null;
       _dragSlotIndex = -1;
       _dragOffset = 0.0;
@@ -649,9 +651,6 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     slot.collapseCtrl = colCtrl;
 
     colCtrl
-      ..addListener(() {
-        if (mounted) setState(() {});
-      })
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed || s == AnimationStatus.dismissed) {
           if (mounted) {
@@ -659,6 +658,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
             if (idx >= 0) {
               setState(() {
                 _slots.removeAt(idx);
+                _collapsingCount--;
                 _reindexDragSlot();
               });
               _measureKeys.remove(slot);
@@ -679,7 +679,11 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
 
     slot.flyCtrl?.dispose();
     final flyCtrl = SingleMotionController(
-      motion: _kFlySpring.copyWith(stiffness: 400 * speedMul),
+      motion: M3EMotion.custom(
+        stiffness: style.flyMotion.stiffness * speedMul,
+        damping: style.flyMotion.damping,
+        snapToEnd: style.flyMotion.snapToEnd,
+      ).toMotion(),
       vsync: this,
       initialValue: flyInitial,
     );
@@ -723,7 +727,10 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     final ctrl = slot.collapseCtrl!;
     final totalH = slot.capturedHeight + style.gap;
     final s = style;
-    final bool swipingRight = _dragOffset > 0;
+    // Use the stored dismiss direction — _dragOffset belongs to any currently
+    // active drag on a *different* slot and would give the wrong side.
+    final bool swipingRight =
+        slot.dismissedDirection == DismissDirection.startToEnd;
     final borderRadius = swipingRight
         ? s.backgroundBorderRadius
         : (s.secondaryBackgroundBorderRadius ?? s.backgroundBorderRadius);
@@ -731,97 +738,86 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
     return IgnorePointer(
       child: AnimatedBuilder(
         animation: ctrl,
-        builder: (ctx, _) {
-          final h = (totalH * (1.0 - ctrl.value)).clamp(0.0, totalH);
-          return SizedBox(
-            height: h,
-            width: double.infinity,
-            child: slot.frozenChild == null
-                ? null
-                : Stack(
-                    children: [
-                      // ── Background (stays visible during fly-out, pushing card) ──
-                      if (slot.dismissedDirection != null)
-                        ValueListenableBuilder<double>(
-                          valueListenable: slot.flyNotifier,
-                          builder: (ctx, flyOff, child) {
-                            // Calculate how far the card has flown.
-                            final progress = flyOff.abs();
-                            // If swiping right (flyOff > 0), align background to left and increase its width.
-                            // If swiping left (flyOff < 0), align background to right and increase its width.
-                            final swipingRight =
-                                slot.dismissedDirection ==
-                                DismissDirection.startToEnd;
-                            return Positioned.fill(
-                              child: Align(
-                                alignment: swipingRight
-                                    ? Alignment.centerLeft
-                                    : Alignment.centerRight,
-                                child: SizedBox(
-                                  width: progress,
-                                  height: double.infinity,
-                                  child: Padding(
-                                    padding: s.margin ?? EdgeInsets.zero,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(
-                                        borderRadius,
-                                      ),
-                                      child: _buildDismissedBackground(
-                                        swipingRight
-                                            ? s.background
-                                            : (s.secondaryBackground ??
-                                                  s.background),
-                                      ),
-                                    ),
+        // The Stack is built once and passed as a stable child — only the
+        // SizedBox height wrapper is rebuilt on every animation tick.
+        child: slot.frozenChild == null
+            ? null
+            : Stack(
+                children: [
+                  // ── Background (stays visible during fly-out) ──
+                  if (slot.dismissedDirection != null)
+                    ValueListenableBuilder<double>(
+                      valueListenable: slot.flyNotifier,
+                      builder: (_, flyOff, child) {
+                        final progress = flyOff.abs();
+                        final swipingRight =
+                            slot.dismissedDirection ==
+                            DismissDirection.startToEnd;
+                        return Positioned.fill(
+                          child: Align(
+                            alignment: swipingRight
+                                ? Alignment.centerLeft
+                                : Alignment.centerRight,
+                            child: SizedBox(
+                              width: progress,
+                              height: double.infinity,
+                              child: Padding(
+                                padding: s.margin ?? EdgeInsets.zero,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    borderRadius,
                                   ),
+                                  child: swipingRight
+                                      ? s.background
+                                      : (s.secondaryBackground ?? s.background),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-
-                      // ── Flying card ──
-                      OverflowBox(
-                        alignment: Alignment.topLeft,
-                        minWidth: slot.capturedWidth > 0
-                            ? slot.capturedWidth
-                            : 0,
-                        maxWidth: slot.capturedWidth > 0
-                            ? slot.capturedWidth
-                            : MediaQuery.sizeOf(ctx).width,
-                        minHeight: 0,
-                        maxHeight: slot.capturedHeight,
-                        child: IgnorePointer(
-                          child: ValueListenableBuilder<double>(
-                            valueListenable: slot.flyNotifier,
-                            builder: (_, flyOff, child) => Transform.translate(
-                              offset: Offset(flyOff, 0),
-                              child: child,
-                            ),
-                            child: Padding(
-                              padding: s.margin ?? EdgeInsets.zero,
-                              child: _FlyingCard(
-                                key: ValueKey('fly_${slot.identity.hashCode}'),
-                                borderRadius: BorderRadius.circular(
-                                  borderRadius,
-                                ),
-                                color:
-                                    s.color ??
-                                    Theme.of(
-                                      ctx,
-                                    ).colorScheme.surfaceContainerHighest,
-                                elevation: s.elevation + 6,
-                                border: s.border,
-                                padding: s.padding ?? const EdgeInsets.all(16),
-                                child: slot.frozenChild!,
                               ),
                             ),
                           ),
+                        );
+                      },
+                    ),
+
+                  // ── Flying card ──
+                  OverflowBox(
+                    alignment: Alignment.topLeft,
+                    minWidth: slot.capturedWidth > 0 ? slot.capturedWidth : 0,
+                    maxWidth: slot.capturedWidth > 0
+                        ? slot.capturedWidth
+                        : MediaQuery.sizeOf(context).width,
+                    minHeight: 0,
+                    maxHeight: slot.capturedHeight,
+                    child: IgnorePointer(
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: slot.flyNotifier,
+                        builder: (_, flyOff, child) => Transform.translate(
+                          offset: Offset(flyOff, 0),
+                          child: child,
+                        ),
+                        child: Padding(
+                          padding: s.margin ?? EdgeInsets.zero,
+                          child: _FlyingCard(
+                            key: ValueKey('fly_${slot.identity.hashCode}'),
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            color:
+                                s.color ??
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                            elevation: s.elevation + 6,
+                            border: s.border,
+                            padding: s.padding ?? const EdgeInsets.all(16),
+                            child: slot.frozenChild!,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-          );
+                ],
+              ),
+        builder: (ctx, child) {
+          final h = (totalH * (1.0 - ctrl.value)).clamp(0.0, totalH);
+          return SizedBox(height: h, width: double.infinity, child: child);
         },
       ),
     );
@@ -834,16 +830,17 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
   ) {
     final slot = _slots[slotIndex];
     final s = style;
-    final dataIndex = visible.indexOf(slotIndex);
-    if (dataIndex < 0 || dataIndex >= swipeItemCount) {
+    final slotPos = visible.indexOf(slotIndex);
+    if (slotPos < 0 || slotPos >= swipeItemCount) {
       return const SizedBox.shrink();
     }
 
     final total = visible.length;
-    final isLast = visible.indexOf(slotIndex) == total - 1;
+    final isLast = slotPos == total - 1;
     final isDragged = slotIndex == _dragSlotIndex;
-    final br = computeRadius(slotIndex, visible);
-    final nOff = computeNeighbourOffset(slotIndex, visible);
+    final dragPos = _dragSlotIndex >= 0 ? visible.indexOf(_dragSlotIndex) : -1;
+    final br = computeRadius(slotIndex, slotPos, dragPos, visible);
+    final nOff = computeNeighbourOffset(slotPos, dragPos);
 
     // Active background based on swipe direction.
     final bool swipingRight = _dragOffset > 0;
@@ -916,24 +913,12 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
                       onTap: isInteractionLocked || onTapCallback == null
                           ? null
                           : () {
-                              onTapCallback!(dataIndex);
-                              switch (s.hapticOnTap) {
-                                case 1:
-                                  HapticFeedback.lightImpact();
-                                  break;
-                                case 2:
-                                  HapticFeedback.mediumImpact();
-                                  break;
-                                case 3:
-                                  HapticFeedback.heavyImpact();
-                                  break;
-                                default:
-                                  break;
-                              }
+                              onTapCallback!(slotPos);
+                              applyExpandableHaptic(s.hapticOnTap);
                             },
                       child: Padding(
                         padding: s.padding ?? const EdgeInsets.all(16.0),
-                        child: swipeItemBuilder(context, dataIndex),
+                        child: swipeItemBuilder(context, slotPos),
                       ),
                     ),
                   ),
@@ -947,16 +932,6 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
   }
 
   // ── Background helpers ──
-
-  Widget _buildDismissedBackground(Widget? bg) {
-    if (bg == null) return const SizedBox.shrink();
-    if (bg is Container) {
-      return Container(color: bg.color, decoration: bg.decoration);
-    }
-    if (bg is ColoredBox) return ColoredBox(color: bg.color);
-    if (bg is DecoratedBox) return DecoratedBox(decoration: bg.decoration);
-    return bg;
-  }
 
   Widget _buildActiveBackground(Widget? bg, double progress) {
     if (bg == null) return const SizedBox.shrink();
@@ -1009,7 +984,7 @@ mixin M3EDismissibleCardMixin<T extends StatefulWidget>
 // _AnimatedCard — the foreground card with animated decoration
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AnimatedCard extends StatelessWidget {
+class _AnimatedCard extends StatefulWidget {
   final GlobalKey cardKey;
   final BorderRadius borderRadius;
   final Color color;
@@ -1032,30 +1007,65 @@ class _AnimatedCard extends StatelessWidget {
   });
 
   @override
+  State<_AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<_AnimatedCard> {
+  late BoxDecoration _decoration;
+
+  @override
+  void initState() {
+    super.initState();
+    _decoration = _buildDecoration();
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedCard old) {
+    super.didUpdateWidget(old);
+    // Only rebuild the BoxDecoration when the visual inputs actually change.
+    // During drag, only ~3 cards (dragged + immediate neighbours) change their
+    // borderRadius — the other 17 reuse the cached decoration, eliminating
+    // ~17 BoxShadow / Color allocations per frame.
+    if (old.color != widget.color ||
+        old.borderRadius != widget.borderRadius ||
+        old.elevation != widget.elevation ||
+        old.isDragged != widget.isDragged ||
+        old.border != widget.border) {
+      _decoration = _buildDecoration();
+    }
+  }
+
+  BoxDecoration _buildDecoration() => BoxDecoration(
+    color: widget.color,
+    borderRadius: widget.borderRadius,
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.06 + widget.elevation * 0.015),
+        blurRadius: 4 + widget.elevation * 2,
+        spreadRadius: widget.isDragged ? 1 : 0,
+        offset: Offset(0, widget.isDragged ? 4 : 2),
+      ),
+    ],
+    border: widget.border != null
+        ? Border.all(color: widget.border!.color, width: widget.border!.width)
+        : null,
+  );
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       width: double.infinity,
-      duration: hasActiveDrag
+      duration: widget.hasActiveDrag
           ? Duration.zero
           : const Duration(milliseconds: 520),
-      curve: const Cubic(0.34, 1.56, 0.64, 1),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: borderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06 + elevation * 0.015),
-            blurRadius: 4 + elevation * 2,
-            spreadRadius: isDragged ? 1 : 0,
-            offset: Offset(0, isDragged ? 4 : 2),
-          ),
-        ],
-        border: border != null
-            ? Border.all(color: border!.color, width: border!.width)
-            : null,
-      ),
+      curve: _kCardSettleCurve,
+      decoration: _decoration,
       clipBehavior: Clip.antiAlias,
-      child: Material(key: cardKey, color: Colors.transparent, child: child),
+      child: Material(
+        key: widget.cardKey,
+        color: Colors.transparent,
+        child: widget.child,
+      ),
     );
   }
 }

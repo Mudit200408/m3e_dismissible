@@ -5,8 +5,8 @@ import 'package:m3e_dismissible/m3e_dismissible.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 M3EDismissibleCardStyle getDismissStyle() => M3EDismissibleCardStyle(
-  hapticOnTap: 1,
-  hapticOnThreshold: 1,
+  hapticOnTap: M3EHapticFeedback.light,
+  hapticOnThreshold: M3EHapticFeedback.light,
   backgroundBorderRadius: 100,
   secondaryBackgroundBorderRadius: 100,
   collapseSpeed: 60,
