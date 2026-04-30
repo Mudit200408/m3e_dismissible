@@ -13,9 +13,9 @@ M3EDismissibleCardStyle getDismissStyle() => M3EDismissibleCardStyle(
   dismissHapticStream: true,
   dismissThreshold: 0.3,
   background: Container(
-    color: const Color.fromARGB(255, 80, 218, 87),
+    color: const Color(0xFF87d292),
     alignment: Alignment.center,
-    child: const Icon(Icons.archive, color: Colors.white, size: 28),
+    child: const Icon(Icons.archive, color: Colors.black, size: 28),
   ),
   secondaryBackground: Container(
     color: Colors.red.shade600,

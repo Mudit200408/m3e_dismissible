@@ -16,7 +16,7 @@ enum M3EHapticFeedback {
 }
 
 /// Helper function to apply haptic feedback based on [M3EHapticFeedback].
-void applyExpandableHaptic(M3EHapticFeedback haptic) {
+void applyHaptic(M3EHapticFeedback haptic) {
   switch (haptic) {
     case M3EHapticFeedback.light:
       HapticFeedback.lightImpact();

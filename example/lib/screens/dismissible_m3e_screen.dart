@@ -293,6 +293,7 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
   M3EHapticFeedback _hapticOnTap = M3EHapticFeedback.light;
   M3EHapticFeedback _hapticOnThreshold = M3EHapticFeedback.medium;
   bool _dismissHapticStream = false;
+  bool _gmailUI = false;
   double _outerRadius = 18.0;
   double _innerRadius = 4.0;
   double _selectedBorderRadius = 20.0;
@@ -602,6 +603,16 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
                     value: _dismissHapticStream,
                     onChanged: (v) => setState(() => _dismissHapticStream = v),
                   ),
+                  SwitchListTile(
+                    title: const Text(
+                      'Gmail Style UI',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _gmailUI,
+                    onChanged: (v) => setState(() => _gmailUI = v),
+                  ),
                 ],
               ),
             ),
@@ -649,6 +660,28 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
                 outerRadius: _outerRadius,
                 innerRadius: _innerRadius,
                 selectedBorderRadius: _selectedBorderRadius,
+                background: _gmailUI
+                    ? Container(
+                        color: const Color(0xFF87d292),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.archive,
+                          color: Colors.black,
+                          size: 28,
+                        ),
+                      )
+                    : null,
+                secondaryBackground: _gmailUI
+                    ? Container(
+                        color: Colors.red.shade600,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      )
+                    : null,
                 gap: _gap,
               ),
               itemBuilder: (context, index) {
