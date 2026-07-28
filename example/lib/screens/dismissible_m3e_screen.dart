@@ -298,6 +298,7 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
   double _innerRadius = 4.0;
   double _selectedBorderRadius = 20.0;
   double _gap = 4.0;
+  bool _dismissWithDialog = false;
 
   Future<bool> _onDismiss(int index, DismissDirection direction) async {
     final item = _items[index];
@@ -305,6 +306,46 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
         ? 'Archived'
         : 'Deleted';
     showSnack(context, '$label: ${item.subject}');
+    setState(() => _items.removeAt(index));
+    return true;
+  }
+
+  Future<bool> _onDismissWithDialog(
+    int index,
+    DismissDirection direction,
+  ) async {
+    final item = _items[index];
+    final action = direction == DismissDirection.startToEnd
+        ? 'archive'
+        : 'delete';
+
+    // 1. Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm ${action.toUpperCase()}'),
+        content: Text('Are you sure you want to $action "${item.subject}"?'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(false), // Return false to cancel!
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(true), // Return true to proceed!
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    // 2. If canceled or dismissed dialog (confirm != true), return false
+    if (confirm != true) {
+      return false; // Card will spring back to original position
+    }
+
+    // 3. If confirmed, proceed with removal
     setState(() => _items.removeAt(index));
     return true;
   }
@@ -613,6 +654,16 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
                     value: _gmailUI,
                     onChanged: (v) => setState(() => _gmailUI = v),
                   ),
+                  SwitchListTile(
+                    title: const Text(
+                      'Show confirmation dialog',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _dismissWithDialog,
+                    onChanged: (v) => setState(() => _dismissWithDialog = v),
+                  ),
                 ],
               ),
             ),
@@ -644,7 +695,7 @@ class _DismissibleColumnTabState extends State<_DismissibleColumnTab> {
           else
             M3EDismissibleCardColumn(
               itemCount: _items.length,
-              onDismiss: _onDismiss,
+              onDismiss: _dismissWithDialog ? _onDismissWithDialog : _onDismiss,
               onTap: (i) => showSnack(context, 'Tapped: ${_items[i].subject}'),
               style: M3EDismissibleCardStyle(
                 hapticOnTap: _hapticOnTap,
