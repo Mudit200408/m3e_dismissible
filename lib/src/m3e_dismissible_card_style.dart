@@ -40,6 +40,10 @@ class M3EDismissibleCardStyle {
   /// Resting elevation.
   final double elevation;
 
+  /// Optional shadow configuration. If provided, overrides default shadow logic.
+  /// Set to empty list `[]` to remove shadow completely.
+  final List<BoxShadow>? boxShadow;
+
   // ── Swipe backgrounds ──
 
   /// Background revealed when swiping start‑to‑end (left→right in LTR).
@@ -119,6 +123,7 @@ class M3EDismissibleCardStyle {
     this.margin,
     this.border,
     this.elevation = 0.0,
+    this.boxShadow,
     this.background,
     this.secondaryBackground,
     this.splashColor,
@@ -150,6 +155,7 @@ class M3EDismissibleCardStyle {
     EdgeInsetsGeometry? margin,
     BorderSide? border,
     double? elevation,
+    List<BoxShadow>? boxShadow,
     Widget? background,
     Widget? secondaryBackground,
     Color? splashColor,
@@ -179,6 +185,7 @@ class M3EDismissibleCardStyle {
       margin: margin ?? this.margin,
       border: border ?? this.border,
       elevation: elevation ?? this.elevation,
+      boxShadow: boxShadow ?? this.boxShadow,
       background: background ?? this.background,
       secondaryBackground: secondaryBackground ?? this.secondaryBackground,
       splashColor: splashColor ?? this.splashColor,
