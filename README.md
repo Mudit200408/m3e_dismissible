@@ -34,7 +34,7 @@ You can try out the package demo here: [m3e_core demo](https://mudit200408.githu
 
 ```yaml
 dependencies:
-  m3e_dismissible: ^0.1.0
+  m3e_dismissible: ^0.1.1
 ```
 
 ```dart

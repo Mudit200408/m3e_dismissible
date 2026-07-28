@@ -1,3 +1,7 @@
+## 0.1.1
+* fix: respect onDismiss return value to allow canceling dismissals (#2) [Contributed by RZI3D]
+* Add example showing the onDismiss fixup in M3EDismissible 
+
 ## 0.1.0
 * **Performance Overhaul**: Significantly reduced widget rebuilds and object allocations during drag animations.
 * **New Motion API**: Exposed `snapBackMotion` and `flyMotion` in `M3EDismissibleCardStyle`.
