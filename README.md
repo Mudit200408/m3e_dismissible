@@ -34,7 +34,7 @@ You can try out the package demo here: [m3e_core demo](https://mudit200408.githu
 
 ```yaml
 dependencies:
-  m3e_dismissible: ^0.1.1
+  m3e_dismissible: ^0.1.2
 ```
 
 ```dart
@@ -102,6 +102,7 @@ M3EDismissibleCardList(
 | `margin` | `EdgeInsetsGeometry?` | `null` | Outer margin around each card. |
 | `border` | `BorderSide?` | `null` | Optional border drawn on every card. |
 | `elevation` | `double` | `0.0` | Resting elevation. |
+| `boxShadow` | `List<BoxShadow>?` | `null` | Custom shadow override. Set to empty list `[]` to remove shadow completely. |
 | `background` | `Widget?` | `null` | Revealed background when swiping start-to-end. |
 | `secondaryBackground` | `Widget?` | `null` | Revealed background when swiping end-to-start. |
 | `splashColor` | `Color?` | `null` | Ink splash color. |

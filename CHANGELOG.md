@@ -1,3 +1,7 @@
+## 0.1.2
+* Allow overriding or disabling drop shadows via `boxShadow` in `M3EDismissibleCardStyle` (#1)
+* Fix drop shadow rendering so setting `elevation` to `0` eliminates shadows automatically (#1)
+
 ## 0.1.1
 * fix: respect onDismiss return value to allow canceling dismissals (#2) [Contributed by RZI3D]
 * Add example showing the onDismiss fixup in M3EDismissible 
