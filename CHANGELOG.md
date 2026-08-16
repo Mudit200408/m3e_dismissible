@@ -1,3 +1,8 @@
+## 1.0.0
+
+- pubspec: migrate to standalone material_ui package for flutter 3.47
+- pubspec: Update the minimum flutter SDK to 3.47.0
+
 ## 0.1.2
 * Allow overriding or disabling drop shadows via `boxShadow` in `M3EDismissibleCardStyle` (#1)
 * Fix drop shadow rendering so setting `elevation` to `0` eliminates shadows automatically (#1)
