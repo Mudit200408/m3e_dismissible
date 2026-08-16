@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:m3e_dismissible/m3e_dismissible.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared swipe style
 // ─────────────────────────────────────────────────────────────────────────────

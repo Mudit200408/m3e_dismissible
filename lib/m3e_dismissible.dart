@@ -3,7 +3,7 @@
 /// This package provides a set of widgets that implement a high-performance,
 /// physics-based dismissible card interaction model, inspired by Material 3
 /// and AOSP notification patterns.
-library m3e_dismissible;
+library;
 
 export 'src/m3e_dismissible_card_column.dart';
 export 'src/m3e_dismissible_card_controller.dart' show DismissibleSlot;
