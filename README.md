@@ -17,6 +17,10 @@ You can try out the package demo here: [m3e_core demo](https://mudit200408.githu
 ## 🚀 Features
 
 - **Dynamic border radius:** The first and last items get a larger outer radius while adjoining cards receive a smaller inner radius seamlessly.
+- **Swipe Action Buttons:** Expressive vertical pill action buttons (`M3ESwipeAction`) with staggered reveal animation and primary auto-execute.
+- **Direction Control:** Configurable swipe direction (`DismissDirection`) — horizontal, left-only, right-only, or disabled.
+- **Accessibility Triggers:** Single-tap, double-tap, or long-press to reveal hidden actions per Material 3 Accessibility Guidelines.
+- **Empty State Builder:** `emptyBuilder` parameter on all list variants for empty-state widgets.
 - **Physics & Animations:** Spring-driven physics for dragging. Neighbour-pull effects on swipe.
 - **Highly Customizable:** Complete control over gaps, radii, colors, haptics, and padding.
 - **Sliver & Column Support:** Provides Slivers and Column wrappers out of the box to beautifully tie into complex layouts.
@@ -44,7 +48,7 @@ Add `m3e_dismissible` and `material_ui` to your `pubspec.yaml`:
 ```yaml
 dependencies:
   material_ui: ^1.0.0
-  m3e_dismissible: ^1.0.0
+  m3e_dismissible: ^1.0.1
 ```
 
 ```dart
@@ -129,6 +133,13 @@ M3EDismissibleCardList(
 | `neighbourMotion` | `M3EMotion` | `800/0.7` | Spring motion for neighbour snapping. |
 | `snapBackMotion` | `M3EMotion` | `380/0.6` | Motion for snapping back when drag is released below threshold. |
 | `flyMotion` | `M3EMotion` | `400/0.8` | Motion for flying off screen when drag is released above threshold. |
+| `direction` | `DismissDirection` | `horizontal` | Allowed swipe directions. Use `none` to disable swipe gestures. |
+| `actions` | `List<M3ESwipeAction>?` | `null` | Action buttons revealed when swiping start-to-end (right in LTR). |
+| `secondaryActions` | `List<M3ESwipeAction>?` | `null` | Action buttons revealed when swiping end-to-start (left in LTR). |
+| `actionSpacing` | `double` | `8.0` | Spacing between revealed action buttons. |
+| `autoExecutePrimaryOnFullSwipe` | `bool` | `true` | Auto-trigger primary action when swiping past threshold. |
+| `actionRevealTrigger` | `M3EActionRevealTrigger` | `none` | Single-point interaction to reveal actions (tap, doubleTap, longPress). |
+| `emptyBuilder` | `WidgetBuilder?` | `null` | Builder for empty-state widget when there are no items. |
 
 > *Variants Available:* `SliverM3EDismissibleCardList`, `M3EDismissibleCardColumn`
 
@@ -170,6 +181,52 @@ M3EMotion.custom(stiffness: 380, damping: 0.75, snapToEnd: false)
 ```
 
 ---
+
+### `M3ESwipeAction`
+
+Expressive vertical pill action buttons revealed when swiping a card.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `icon` | `Widget` | **Required** | The icon widget representing this action. |
+| `label` | `Widget?` | `null` | Optional label text displayed below the icon. |
+| `backgroundColor` | `Color?` | `secondaryContainer` / `primary` | Background color for the action button. |
+| `foregroundColor` | `Color?` | `onSecondaryContainer` / `onPrimary` | Foreground color (icon & label). |
+| `onTap` | `VoidCallback?` | `null` | Callback when this action is tapped or triggered by full swipe. |
+| `isPrimary` | `bool` | `false` | Whether this is the primary end-aligned action (auto-fired on full swipe). |
+| `width` | `double` | `52.0` | Width of the vertical pill button. |
+| `height` | `double?` | `null` | Explicit height (inherits card slot height if null). |
+| `borderRadius` | `BorderRadiusGeometry?` | `BorderRadius.circular(100)` | Custom border radius. |
+| `haptic` | `M3EHapticFeedback` | `medium` | Haptic feedback when tapped. |
+
+```dart
+M3EDismissibleCardList(
+  style: M3EDismissibleCardStyle(
+    actions: [
+      M3ESwipeAction(
+        icon: const Icon(Icons.archive_rounded),
+        label: const Text('Archive'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        onTap: () => print('Archived!'),
+      ),
+      M3ESwipeAction(
+        icon: const Icon(Icons.delete_rounded),
+        label: const Text('Delete'),
+        isPrimary: true,
+        onTap: () => print('Deleted!'),
+      ),
+    ],
+    secondaryActions: [
+      M3ESwipeAction(
+        icon: const Icon(Icons.reply_rounded),
+        label: const Text('Reply'),
+      ),
+    ],
+  ),
+  ...
+)
+```
 
 ### 🎯 Check the [Example](https://github.com/Mudit200408/m3e_dismissible/tree/main/example) App for more details. 
 

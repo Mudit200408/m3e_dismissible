@@ -1,3 +1,23 @@
+## 1.0.1
+
+### Added
+
+- `M3ESwipeAction` — expressive vertical pill action buttons revealed on swipe with staggered reveal animation.
+- `actions` and `secondaryActions` parameters on `M3EDismissibleCardStyle` for swipe-to-reveal action buttons.
+- `direction` parameter on `M3EDismissibleCardStyle` to control allowed swipe directions (`DismissDirection`).
+- `emptyBuilder` parameter on all list variants for empty-state widgets.
+- `autoExecutePrimaryOnFullSwipe` — auto-trigger primary action when swiping past threshold.
+- `actionRevealTrigger` — single-point interaction triggers (tap, double-tap, long-press) for accessibility.
+- `actionSpacing` — configurable spacing between revealed action buttons.
+- `toggleRevealActions` and `revealActionsAtIndex` methods on the controller for programmatic action reveal.
+- `applyTypedHaptic` for more nuanced haptic feedback during drag.
+
+### Changed
+
+- Improved card settle curve from overshooting spring to `easeOutCubic`.
+- Updated card background color default from `surfaceContainerHighest` to `surfaceContainer`.
+- Improved dismiss callback behavior — now cancels dismissal properly when consumer returns `false`.
+
 ## 1.0.0
 
 - pubspec: migrate to standalone material_ui package for flutter 3.47
