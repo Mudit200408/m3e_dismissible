@@ -10,5 +10,6 @@ export 'src/m3e_dismissible_card_controller.dart' show DismissibleSlot;
 export 'src/m3e_dismissible_card_list.dart';
 export 'src/sliver_m3e_dismissible_card_list.dart';
 export 'src/m3e_dismissible_card_style.dart';
+export 'src/m3e_swipe_action.dart';
 export 'src/m3e_haptics.dart';
 export 'src/m3e_motion.dart';
