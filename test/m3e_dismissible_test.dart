@@ -236,11 +236,7 @@ void main() {
                 itemCount: 2,
                 style: const M3EDismissibleCardStyle(
                   actionRevealTrigger: M3EActionRevealTrigger.longPress,
-                  actions: [
-                    M3ESwipeAction(
-                      icon: Icon(Icons.bookmark),
-                    ),
-                  ],
+                  actions: [M3ESwipeAction(icon: Icon(Icons.bookmark))],
                 ),
                 itemBuilder: (context, index) {
                   return SizedBox(

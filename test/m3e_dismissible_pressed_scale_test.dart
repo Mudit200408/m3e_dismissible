@@ -57,10 +57,7 @@ void main() {
           matching: find.byType(Transform),
         ),
       );
-      expect(
-        transforms0.any((t) => t.transform.entry(0, 0) < 1.0),
-        isTrue,
-      );
+      expect(transforms0.any((t) => t.transform.entry(0, 0) < 1.0), isTrue);
 
       // Card 1 transform should remain at 1.0 (unpressed)
       final transforms1 = tester.widgetList<Transform>(
@@ -69,10 +66,7 @@ void main() {
           matching: find.byType(Transform),
         ),
       );
-      expect(
-        transforms1.every((t) => t.transform.entry(0, 0) >= 1.0),
-        isTrue,
-      );
+      expect(transforms1.every((t) => t.transform.entry(0, 0) >= 1.0), isTrue);
 
       // Release
       await gesture.up();

@@ -17,12 +17,16 @@ You can try out the package demo here: [m3e_core demo](https://mudit200408.githu
 ## 🚀 Features
 
 - **Dynamic border radius:** The first and last items get a larger outer radius while adjoining cards receive a smaller inner radius seamlessly.
-- **Swipe Action Buttons:** Expressive vertical pill action buttons (`M3ESwipeAction`) with staggered reveal animation and primary auto-execute.
+- **Reorderable Dismissible List (`M3EReorderableDismissibleList`):** Combines spring-physics vertical drag reordering with horizontal swipe-to-dismiss and action reveal.
+- **Keyboard Navigation & Accessible Focus Rings:** Full desktop & web keyboard support (Arrow keys, Space, Enter, Delete, Escape, Alt+Up/Down) with zero-layout-impact focus rings.
+- **Swipe Action Buttons:** Expressive vertical pill action buttons (`M3ESwipeAction`) with staggered reveal animation, threshold haptics, and primary auto-execute.
+- **Pressed Scale Micro-interactions:** Tactile squish feedback on touch/press down (`pressedScale` & `pressedMotion`).
+- **Modern InkSparkle Splash:** Default `InkSparkle` splash effect matching modern Material 3 specifications.
 - **Direction Control:** Configurable swipe direction (`DismissDirection`) — horizontal, left-only, right-only, or disabled.
 - **Accessibility Triggers:** Single-tap, double-tap, or long-press to reveal hidden actions per Material 3 Accessibility Guidelines.
 - **Empty State Builder:** `emptyBuilder` parameter on all list variants for empty-state widgets.
 - **Physics & Animations:** Spring-driven physics for dragging. Neighbour-pull effects on swipe.
-- **Highly Customizable:** Complete control over gaps, radii, colors, haptics, and padding.
+- **Highly Customizable:** Complete control over gaps, radii, colors, haptics, focus rings, and padding.
 - **Sliver & Column Support:** Provides Slivers and Column wrappers out of the box to beautifully tie into complex layouts.
 
 ---
@@ -47,8 +51,8 @@ Add `m3e_dismissible` and `material_ui` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  material_ui: ^1.0.0
-  m3e_dismissible: ^1.0.1
+  material_ui: ^1.1.1
+  m3e_dismissible: ^1.0.2
 ```
 
 ```dart
@@ -112,21 +116,26 @@ M3EDismissibleCardList(
 | `secondaryBackgroundBorderRadius` | `double?` | `100` | Radius applied to the secondary background when swiping end-to-start. |
 | `collapseSpeed` | `double` | `50` | Speed of collapse animation after the card is dismissed. Higher Number = Faster Collapse, Lower Number = Slower Collapse |
 | `gap` | `double` | `3.0` | Vertical gap between cards. |
-| `color` | `Color?` | `surfaceContainerHighest` | Card background colour. |
+| `color` | `Color?` | `surfaceContainer` | Card background colour. |
 | `padding` | `EdgeInsetsGeometry?` | `null` | Inner padding of each card's content area. |
 | `margin` | `EdgeInsetsGeometry?` | `null` | Outer margin around each card. |
 | `border` | `BorderSide?` | `null` | Optional border drawn on every card. |
 | `elevation` | `double` | `0.0` | Resting elevation. |
 | `boxShadow` | `List<BoxShadow>?` | `null` | Custom shadow override. Set to empty list `[]` to remove shadow completely. |
+| `pressedScale` | `double?` | `null` | Scale factor applied when card is pressed down (e.g. `0.97` for tactile squish). |
+| `pressedMotion` | `M3EMotion` | `expressiveSpatialFast` | Spring motion for press-down and release scale animation. |
+| `focusRingColor` | `Color?` | `null` | Custom focus ring color for keyboard navigation. |
+| `focusRingGap` | `double` | `0.0` | Gap between card edge and focus ring. |
+| `focusRingWidth` | `double` | `2.0` | Stroke width of the focus ring. |
 | `background` | `Widget?` | `null` | Revealed background when swiping start-to-end. |
 | `secondaryBackground` | `Widget?` | `null` | Revealed background when swiping end-to-start. |
 | `splashColor` | `Color?` | `null` | Ink splash color. |
 | `highlightColor` | `Color?` | `null` | Ink highlight color. |
-| `splashFactory` | `InteractiveInkFeatureFactory?` | `null` | Splash factory. |
+| `splashFactory` | `InteractiveInkFeatureFactory?` | `InkSparkle.splashFactory` | Splash factory (`InkSparkle` by default). |
 | `enableFeedback` | `bool` | `true` | Whether gestures provide acoustic/haptic feedback. |
 | `hapticOnTap` | `M3EHapticFeedback` | `none` | Haptic feedback intensity on tap. |
 | `dismissThreshold` | `double` | `0.2` | Fraction of width before dismiss triggers. |
-| `hapticOnThreshold` | `M3EHapticFeedback` | `light` | Haptic feedback level when crossing dismiss threshold. |
+| `hapticOnThreshold` | `M3EHapticFeedback` | `light` | Haptic feedback level when crossing dismiss or action reveal threshold. |
 | `dismissHapticStream` | `bool` | `false` | Fire continuous light haptics during drag. |
 | `neighbourPull` | `double` | `8.0` | Maximum pixel offset applied to neighbouring cards. |
 | `neighbourReach` | `int` | `3` | How many cards above + below the dragged card are affected. |
@@ -141,7 +150,64 @@ M3EDismissibleCardList(
 | `actionRevealTrigger` | `M3EActionRevealTrigger` | `none` | Single-point interaction to reveal actions (tap, doubleTap, longPress). |
 | `emptyBuilder` | `WidgetBuilder?` | `null` | Builder for empty-state widget when there are no items. |
 
-> *Variants Available:* `SliverM3EDismissibleCardList`, `M3EDismissibleCardColumn`
+> *Variants Available:* `M3EReorderableDismissibleList`, `SliverM3EDismissibleCardList`, `M3EDismissibleCardColumn`
+
+---
+
+## 🔄 Reorderable Dismissible List (`M3EReorderableDismissibleList`)
+
+A unified Material 3 Expressive list component that seamlessly combines **spring-physics vertical drag reordering** (dynamic placeholder slot, bouncy spring neighbor displacement) with **horizontal swipe-to-dismiss** and **action reveal**.
+
+```dart
+M3EReorderableDismissibleList(
+  itemCount: items.length,
+  keyBuilder: (index) => ValueKey(items[index].id),
+  onReorder: (oldIndex, newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final item = items.removeAt(oldIndex);
+      items.insert(newIndex, item);
+    });
+  },
+  onDismiss: (index, direction) async {
+    setState(() => items.removeAt(index));
+    return true;
+  },
+  style: const M3EDismissibleCardStyle(
+    outerRadius: 20.0,
+    innerRadius: 4.0,
+    pressedScale: 0.97,
+    actions: [
+      M3ESwipeAction(
+        icon: Icon(Icons.archive),
+        label: Text('Archive'),
+      ),
+    ],
+  ),
+  itemBuilder: (context, index) {
+    return ListTile(
+      title: Text(items[index].title),
+      trailing: const Icon(Icons.drag_handle),
+    );
+  },
+)
+```
+
+---
+
+## ⌨️ Keyboard Navigation & Accessibility
+
+`m3e_dismissible` provides comprehensive keyboard navigation and zero-layout-impact focus rings out of the box:
+
+| Shortcut | Action |
+|---|---|
+| `Tab` / `Shift + Tab` | Focus next / previous card or action button. |
+| `ArrowLeft` / `ArrowRight` | Reveal leading / trailing swipe action buttons on focused card. |
+| `ArrowLeft` / `ArrowRight` *(in action drawer)* | Navigate focus between individual action buttons. |
+| `Space` / `Enter` | Trigger focused action button or tap card. |
+| `Escape` | Close revealed action drawer and return focus to the card. |
+| `Delete` / `Backspace` | Dismiss the focused card (or open actions if actions configured). |
+| `Alt + ArrowDown` / `Alt + ArrowUp` | Reorder item forward / backward in `M3EReorderableDismissibleList`. |
 
 ---
 

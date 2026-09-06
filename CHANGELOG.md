@@ -1,3 +1,12 @@
+## 1.0.2
+
+- dismissible: add keyboard navigation and focus ring support
+- dismissible: add M3EReorderableDismissibleList component
+- dismissible: use InkSparkle as default splash effect
+- dismissible: add pressed scale micro-interaction support
+- dismissible: apply border radius clipping to active background and add opacity animation to dismissible buttons
+- dismissible: implement haptic feedback when dismissible action buttons reach full reveal threshold
+
 ## 1.0.1
 
 ### Added
