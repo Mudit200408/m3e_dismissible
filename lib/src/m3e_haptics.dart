@@ -33,6 +33,12 @@ void applyHaptic(M3EHapticFeedback haptic) {
   }
 }
 
+/// Extension on [M3EHapticFeedback] to trigger haptic feedback.
+extension M3EHapticFeedbackExtension on M3EHapticFeedback {
+  /// Triggers this haptic feedback.
+  void apply() => applyHaptic(this);
+}
+
 /// Dispatch a typed haptic event with a pre-computed [amplitude] (0.0–1.0).
 ///
 /// On Android, this attempts a platform-specific haptic via method channel;

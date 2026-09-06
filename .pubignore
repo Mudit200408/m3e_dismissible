@@ -1,2 +1,19 @@
 # Ignore doc for pub publish to reduce package size
 doc/
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+coverage/
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.idea/
+*.iml
+*.ipr
+*.iws

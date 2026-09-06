@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_dismissible/m3e_dismissible.dart';
 
 void main() {
   group('M3EDismissibleCard pressedScale tests', () {
@@ -58,7 +58,7 @@ void main() {
         ),
       );
       expect(
-        transforms0.any((t) => t.transform.getMaxScaleOnAxis() < 1.0),
+        transforms0.any((t) => t.transform.entry(0, 0) < 1.0),
         isTrue,
       );
 
@@ -70,7 +70,7 @@ void main() {
         ),
       );
       expect(
-        transforms1.every((t) => t.transform.getMaxScaleOnAxis() >= 1.0),
+        transforms1.every((t) => t.transform.entry(0, 0) >= 1.0),
         isTrue,
       );
 
@@ -86,7 +86,7 @@ void main() {
         ),
       );
       expect(
-        transforms0After.every((t) => t.transform.getMaxScaleOnAxis() >= 1.0),
+        transforms0After.every((t) => t.transform.entry(0, 0) >= 1.0),
         isTrue,
       );
     });

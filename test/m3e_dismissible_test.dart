@@ -34,7 +34,7 @@ void main() {
       expect(find.byIcon(Icons.share_rounded), findsOneWidget);
       expect(find.text('Share'), findsOneWidget);
 
-      await tester.tap(find.byType(InkWell));
+      await tester.tap(find.byIcon(Icons.share_rounded));
       await tester.pumpAndSettle();
 
       expect(actionTriggered, isTrue);
@@ -234,12 +234,11 @@ void main() {
               height: 600,
               child: M3EDismissibleCardColumn(
                 itemCount: 2,
-                style: M3EDismissibleCardStyle(
-                  longPressRevealsActions: true,
+                style: const M3EDismissibleCardStyle(
+                  actionRevealTrigger: M3EActionRevealTrigger.longPress,
                   actions: [
                     M3ESwipeAction(
-                      icon: const Icon(Icons.bookmark),
-                      onTap: () {},
+                      icon: Icon(Icons.bookmark),
                     ),
                   ],
                 ),
