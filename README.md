@@ -19,7 +19,7 @@ You can try out the package demo here: [m3e_core demo](https://mudit200408.githu
 - **Dynamic border radius:** The first and last items get a larger outer radius while adjoining cards receive a smaller inner radius seamlessly.
 - **Reorderable Dismissible List (`M3EReorderableDismissibleList`):** Combines spring-physics vertical drag reordering with horizontal swipe-to-dismiss and action reveal.
 - **Keyboard Navigation & Accessible Focus Rings:** Full desktop & web keyboard support (Arrow keys, Space, Enter, Delete, Escape, Alt+Up/Down) with zero-layout-impact focus rings.
-- **Swipe Action Buttons:** Expressive vertical pill action buttons (`M3ESwipeAction`) with staggered reveal animation, threshold haptics, and primary auto-execute.
+- **Swipe Action Buttons:** Expressive vertical pill action buttons (`M3ESwipeAction`) with staggered reveal animation, threshold haptics, dismiss-on-tap animation, and primary auto-execute.
 - **Pressed Scale Micro-interactions:** Tactile squish feedback on touch/press down (`pressedScale` & `pressedMotion`).
 - **Modern InkSparkle Splash:** Default `InkSparkle` splash effect matching modern Material 3 specifications.
 - **Direction Control:** Configurable swipe direction (`DismissDirection`) — horizontal, left-only, right-only, or disabled.
@@ -52,7 +52,7 @@ Add `m3e_dismissible` and `material_ui` to your `pubspec.yaml`:
 ```yaml
 dependencies:
   material_ui: ^1.1.1
-  m3e_dismissible: ^1.0.2
+  m3e_dismissible: ^1.0.3
 ```
 
 ```dart
@@ -260,6 +260,7 @@ Expressive vertical pill action buttons revealed when swiping a card.
 | `foregroundColor` | `Color?` | `onSecondaryContainer` / `onPrimary` | Foreground color (icon & label). |
 | `onTap` | `VoidCallback?` | `null` | Callback when this action is tapped or triggered by full swipe. |
 | `isPrimary` | `bool` | `false` | Whether this is the primary end-aligned action (auto-fired on full swipe). |
+| `dismissOnTap` | `bool` | `false` | Whether tapping this action animates card dismissal (fly-out and collapse) before calling `onTap`. |
 | `width` | `double` | `52.0` | Width of the vertical pill button. |
 | `height` | `double?` | `null` | Explicit height (inherits card slot height if null). |
 | `borderRadius` | `BorderRadiusGeometry?` | `BorderRadius.circular(100)` | Custom border radius. |
@@ -280,6 +281,7 @@ M3EDismissibleCardList(
         icon: const Icon(Icons.delete_rounded),
         label: const Text('Delete'),
         isPrimary: true,
+        dismissOnTap: true,
         onTap: () => print('Deleted!'),
       ),
     ],

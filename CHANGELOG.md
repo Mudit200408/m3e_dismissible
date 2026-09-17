@@ -1,3 +1,8 @@
+## 1.0.3
+
+- dismissible: support dismissOnTap on swipe actions and programmatic dismiss
+- dismissible: guard inactive element measurement and reset drag on item removal
+
 ## 1.0.2
 
 - dismissible: add keyboard navigation and focus ring support
